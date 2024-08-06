@@ -1,0 +1,496 @@
+El Sistema de Gestión de Tareas está diseñado para ayudar a los usuarios a organizar y administrar sus actividades diarias de manera eficiente. 
+Este programa permite a los usuarios agregar, eliminar, listar, editar y marcar tareas como completadas. 
+También proporciona funcionalidades adicionales como la exportación e importación de tareas, la visualización de un calendario, la búsqueda y 
+filtrado de tareas, así como la implementación de un temporizador para gestionar el tiempo dedicado a una tarea específica.
+
+(CADA FUNCIONALIDAD ESTA DESTACADA EN LOS COMENTARIOS)
+
+Funcionalidades Principales del Sistema de Gestión de Tareas
+
+- **Agregar tareas**
+- **Eliminar tareas**
+- **Listar tareas**
+- **Marcar tareas como completadas**
+- **Editar tareas**
+- **Filtrar tareas por fecha o categoría**
+- **Buscar tareas por título**
+- **Mostrar calendario con tareas**
+- **Exportar tareas a archivo de texto**
+- **Importar tareas desde archivo de texto**
+- **Temporizador**
+- **Mostrar historial de tareas completadas**
+- **Mostrar ayuda**
+
+---------------------------------------------------------------------------------------------------------
+
+import os
+import calendar
+import time
+import tkinter as tk
+from tkinter import filedialog
+from datetime import datetime
+from datetime import timedelta
+import csv
+
+# Lista para almacenar las tareas y el historial
+tareas = []
+historial_tareas = []
+
+# Función para limpiar la pantalla
+def limpiar_pantalla():
+    os.system('cls' if os.name == 'nt' else 'clear')
+
+# Función para colorear texto
+def colorear_texto(texto, color):
+    colores = {
+        "reset": "\033[0m",
+        "negro": "\033[30m",
+        "rojo": "\033[31m",
+        "verde": "\033[32m",
+        "amarillo": "\033[33m",
+        "azul": "\033[34m",
+        "magenta": "\033[35m",
+        "cyan": "\033[36m",
+        "blanco": "\033[37m"
+    }
+    return f"{colores[color]}{texto}{colores['reset']}"
+
+# Función para validar fecha
+def validar_fecha(fecha_str):
+    try:
+        datetime.strptime(fecha_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+# Función para validar prioridad
+def validar_prioridad(prioridad):
+    return prioridad in ["baja", "media", "alta"]
+
+# Función para validar categoría
+def validar_categoria(categoria):
+    return categoria.strip() != ""
+
+# Función para validar hora
+def validar_hora(hora_str):
+    try:
+        datetime.strptime(hora_str, "%H:%M")
+        return True
+    except ValueError:
+        return False
+
+# Función para validar archivo de texto
+def validar_archivo(nombre_archivo):
+    return nombre_archivo.endswith(".txt")
+
+# Función para mostrar el menú principal
+def mostrar_menu():
+    print(colorear_texto("\nSistema de Gestión de Tareas", "azul"))
+    print("1. Agregar tarea")
+    print("2. Eliminar tarea")
+    print("3. Listar tareas")
+    print("4. Marcar tarea como completada")
+    print("5. Editar tarea")
+    print("6. Filtrar tareas")
+    print("7. Buscar tarea")
+    print("8. Mostrar calendario")
+    print("9. Mostrar historial de tareas completadas")
+    print("10. Mostrar ayuda")
+    print("11. Exportar tareas")
+    print("12. Importar tareas")
+    print("13. Temporizador")
+    print("14. Salir")
+
+# Función para agregar una tarea
+def agregar_tarea():
+    limpiar_pantalla()
+    while True:
+        try:
+            titulo = input("Escribe el título de la nueva tarea: ").strip()
+            if not titulo:
+                print(colorear_texto("El título no puede estar vacío.", "rojo"))
+                continue
+
+            while True:
+                fecha = input("Escribe la fecha límite (YYYY-MM-DD): ").strip()
+                if validar_fecha(fecha):
+                    fecha_limite = datetime.strptime(fecha, "%Y-%m-%d").date()
+                    break
+                else:
+                    print(colorear_texto("Fecha inválida. Usa el formato YYYY-MM-DD.", "rojo"))
+
+            while True:
+                prioridad = input("Escribe la prioridad (baja, media, alta): ").strip().lower()
+                if validar_prioridad(prioridad):
+                    break
+                else:
+                    print(colorear_texto("Prioridad inválida. Debe ser 'baja', 'media' o 'alta'.", "rojo"))
+
+            while True:
+                categoria = input("Escribe la categoría de la tarea: ").strip()
+                if validar_categoria(categoria):
+                    break
+                else:
+                    print(colorear_texto("La categoría no puede estar vacía.", "rojo"))
+
+            hora = input("Escribe la hora límite (HH:MM) o deja en blanco si no aplica: ").strip()
+            if hora and not validar_hora(hora):
+                print(colorear_texto("Hora inválida. Usa el formato HH:MM.", "rojo"))
+                continue
+
+            tarea = {
+                "titulo": titulo,
+                "completada": False,
+                "fecha_limite": fecha,
+                "prioridad": prioridad,
+                "categoria": categoria,
+                "hora_limite": hora if hora else None
+            }
+            tareas.append(tarea)
+            print(colorear_texto(f"Tarea '{titulo}' agregada en la categoría '{categoria}'.", "magenta"))
+            break
+        except ValueError:
+            print(colorear_texto("Entrada inválida. Intenta de nuevo.", "rojo"))
+
+        input("Presiona Enter para intentar de nuevo...")
+
+# Función para eliminar una tarea
+def eliminar_tarea():
+    limpiar_pantalla()
+    listar_tareas()
+    while True:
+        try:
+            indice = input("Escribe el número de la tarea que deseas eliminar o 's' para salir: ").strip()
+            if indice.lower() == 's':
+                return
+            indice = int(indice) - 1
+            if 0 <= indice < len(tareas):
+                tarea = tareas.pop(indice)
+                print(colorear_texto(f"Tarea '{tarea['titulo']}' eliminada.", "magenta"))
+                break
+            else:
+                print(colorear_texto("Índice inválido.", "rojo"))
+        except ValueError:
+            print(colorear_texto("Entrada inválida. Debe ser un número o 's' para salir.", "rojo"))
+
+        input("Presiona Enter para intentar de nuevo...")
+
+# Función para listar las tareas
+def listar_tareas(filtro=None, valor=None):
+    limpiar_pantalla()
+    if not tareas:
+        print("No hay tareas.")
+    else:
+        print("Lista de Tareas:")
+        for i, tarea in enumerate(tareas, 1):
+            if filtro and tarea[filtro] != valor:
+                continue
+
+            estado = colorear_texto("Completada", "verde") if tarea["completada"] else colorear_texto("Pendiente", "amarillo")
+            prioridad = colorear_texto(tarea["prioridad"], "rojo" if tarea["prioridad"] == "alta" else "amarillo" if tarea["prioridad"] == "media" else "verde")
+            print(f"{i}. {colorear_texto(tarea['titulo'], 'blanco')} - {estado} - Fecha límite: {tarea['fecha_limite']} - Prioridad: {prioridad}")
+
+    input("Presiona Enter para regresar al menú principal...")
+
+# Función para marcar una tarea como completada
+def marcar_completada():
+    limpiar_pantalla()
+    listar_tareas()
+    while True:
+        try:
+            indice = input("Escribe el número de la tarea que deseas marcar como completada o 's' para salir: ").strip()
+            if indice.lower() == 's':
+                return
+            indice = int(indice) - 1
+            if 0 <= indice < len(tareas):
+                tarea = tareas[indice]
+                tarea["completada"] = True
+                fecha_completada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                historial_tareas.append({"titulo": tarea["titulo"], "fecha_completada": fecha_completada})
+                print(colorear_texto(f"Tarea '{tarea['titulo']}' marcada como completada.", "magenta"))
+                break
+            else:
+                print(colorear_texto("Índice inválido.", "rojo"))
+        except ValueError:
+            print(colorear_texto("Entrada inválida. Debe ser un número o 's' para salir.", "rojo"))
+
+        input("Presiona Enter para intentar de nuevo...")
+
+# Función para editar una tarea
+def editar_tarea():
+    limpiar_pantalla()
+    listar_tareas()
+    while True:
+        try:
+            indice = input("Escribe el número de la tarea que deseas editar o 's' para salir: ").strip()
+            if indice.lower() == 's':
+                return
+            indice = int(indice) - 1
+            if 0 <= indice < len(tareas):
+                tarea = tareas[indice]
+                print(f"Editando tarea: {tarea['titulo']}")
+                titulo = input(f"Nuevo título (deja en blanco para mantener '{tarea['titulo']}'): ").strip()
+                fecha_limite = input(f"Nueva fecha límite (deja en blanco para mantener '{tarea['fecha_limite']}'): ").strip()
+                if fecha_limite and not validar_fecha(fecha_limite):
+                    print(colorear_texto("Fecha inválida. Usa el formato YYYY-MM-DD.", "rojo"))
+                    continue
+                prioridad = input(f"Nueva prioridad (deja en blanco para mantener '{tarea['prioridad']}'): ").strip().lower()
+                if prioridad and not validar_prioridad(prioridad):
+                    print(colorear_texto("Prioridad inválida. Debe ser 'baja', 'media' o 'alta'.", "rojo"))
+                    continue
+                categoria = input(f"Nueva categoría (deja en blanco para mantener '{tarea['categoria']}'): ").strip()
+                if categoria and not validar_categoria(categoria):
+                    print(colorear_texto("La categoría no puede estar vacía.", "rojo"))
+                    continue
+                hora_limite = input(f"Nueva hora límite (deja en blanco para mantener '{tarea.get('hora_limite', '')}'): ").strip()
+                if hora_limite and not validar_hora(hora_limite):
+                    print(colorear_texto("Hora inválida. Usa el formato HH:MM.", "rojo"))
+                    continue
+
+                if titulo:
+                    tarea["titulo"] = titulo
+                if fecha_limite:
+                    tarea["fecha_limite"] = fecha_limite
+                if prioridad:
+                    tarea["prioridad"] = prioridad
+                if categoria:
+                    tarea["categoria"] = categoria
+                if hora_limite:
+                    tarea["hora_limite"] = hora_limite
+
+                print(colorear_texto(f"Tarea '{tarea['titulo']}' actualizada.", "magenta"))
+                break
+            else:
+                print(colorear_texto("Índice inválido.", "rojo"))
+        except ValueError:
+            print(colorear_texto("Entrada inválida. Debe ser un número o 's' para salir.", "rojo"))
+
+        input("Presiona Enter para intentar de nuevo...")
+
+# Función para filtrar tareas
+def filtrar_tareas():
+    limpiar_pantalla()
+    categorias = set(tarea["categoria"] for tarea in tareas)
+    fechas = set(tarea["fecha_limite"] for tarea in tareas)
+
+    print("Categorías disponibles:")
+    for categoria in categorias:
+        print(f"- {categoria}")
+
+    print("\nFechas disponibles:")
+    for fecha in fechas:
+        print(f"- {fecha}")
+
+    filtro = input("\n¿Filtrar por 'fecha' o 'categoría'? ").strip().lower()
+    valor = input(f"Escribe el valor para el filtro '{filtro}': ").strip()
+    listar_tareas(filtro=filtro, valor=valor)
+
+# Función para buscar tarea
+def buscar_tarea():
+    limpiar_pantalla()
+    busqueda = input("Escribe el título o parte del título de la tarea a buscar: ").strip().lower()
+    encontrado = False
+    for i, tarea in enumerate(tareas, 1):
+        if busqueda in tarea["titulo"].lower():
+            estado = colorear_texto("Completada", "verde") if tarea["completada"] else colorear_texto("Pendiente", "amarillo")
+            prioridad = colorear_texto(tarea["prioridad"], "rojo" if tarea["prioridad"] == "alta" else "amarillo" if tarea["prioridad"] == "media" else "verde")
+            print(f"{i}. {colorear_texto(tarea['titulo'], 'blanco')} - {estado} - Fecha límite: {tarea['fecha_limite']} - Prioridad: {prioridad}")
+            encontrado = True
+    if not encontrado:
+        print(colorear_texto("No se encontraron tareas con ese título.", "rojo"))
+
+    input("Presiona Enter para regresar al menú principal...")
+
+# Función para mostrar el historial de tareas completadas
+def mostrar_historial():
+    limpiar_pantalla()
+    if not historial_tareas:
+        print("No hay historial de tareas completadas.")
+    else:
+        print("Historial de Tareas Completadas:")
+        for tarea in historial_tareas:
+            print(f"Título: {tarea['titulo']} - Fecha de completado: {tarea['fecha_completada']}")
+
+    input("Presiona Enter para regresar al menú principal...")
+
+# Función para mostrar el calendario
+def mostrar_calendario(ano, mes):
+    limpiar_pantalla()
+    cal = calendar.TextCalendar(calendar.SUNDAY)
+    cal_str = cal.formatmonth(ano, mes)
+
+    # Dividir el calendario en líneas
+    cal_lines = cal_str.split('\n')
+
+    # Buscar tareas en el mes actual
+    tareas_mes = [tarea for tarea in tareas if tarea["fecha_limite"].startswith(f"{ano}-{str(mes).zfill(2)}")]
+
+    # Crear un conjunto de días con tareas
+    dias_con_tareas = {int(tarea["fecha_limite"].split('-')[2]) for tarea in tareas_mes}
+
+    # Añadir un asterisco a los días con tareas
+    for i, line in enumerate(cal_lines):
+        for dia in dias_con_tareas:
+            dia_str = str(dia)
+            if dia_str in line.split():
+                cal_lines[i] = line.replace(dia_str, colorear_texto(f"{dia_str}*", "cyan"))
+
+    # Unir las líneas modificadas
+    cal_str = '\n'.join(cal_lines)
+
+    print(cal_str)
+
+# Función para navegar por el calendario
+def navegar_calendario():
+    ano = datetime.now().year
+    mes = datetime.now().month
+
+    while True:
+        mostrar_calendario(ano, mes)
+        print("\nNavegar:")
+        print("n - Mes siguiente")
+        print("p - Mes anterior")
+        print("s - Salir")
+
+        opcion = input("Elige una opción: ").strip().lower()
+
+        if opcion == "n":
+            if mes == 12:
+                mes = 1
+                ano += 1
+            else:
+                mes += 1
+        elif opcion == "p":
+            if mes == 1:
+                mes = 12
+                ano -= 1
+            else:
+                mes -= 1
+        elif opcion == "s":
+            break
+        else:
+            print(colorear_texto("Opción inválida.", "rojo"))
+
+# Función para exportar tareas
+def exportar_tareas():
+    limpiar_pantalla()
+    nombre_archivo = input("Escribe el nombre del archivo para exportar (ejemplo: tareas.txt): ").strip()
+    if not validar_archivo(nombre_archivo):
+        print(colorear_texto("El archivo debe tener extensión .txt.", "rojo"))
+        return
+
+    with open(nombre_archivo, 'w') as f:
+        for tarea in tareas:
+            f.write(f"{tarea['titulo']} | {tarea['fecha_limite']} | {tarea['prioridad']} | {tarea['categoria']} | {'Completada' if tarea['completada'] else 'Pendiente'}\n")
+
+    print(colorear_texto(f"Tareas exportadas a {nombre_archivo}.", "magenta"))
+
+# Función para importar tareas
+def importar_tareas():
+    limpiar_pantalla()
+    nombre_archivo = filedialog.askopenfilename(filetypes=[("Archivos de texto", "*.txt")])
+    if not nombre_archivo:
+        print(colorear_texto("No se seleccionó ningún archivo.", "rojo"))
+        return
+
+    with open(nombre_archivo, 'r') as f:
+        for linea in f:
+            partes = linea.strip().split(" | ")
+            if len(partes) == 5:
+                titulo, fecha_limite, prioridad, categoria, estado = partes
+                tarea = {
+                    "titulo": titulo,
+                    "fecha_limite": fecha_limite,
+                    "prioridad": prioridad,
+                    "categoria": categoria,
+                    "completada": estado == "Completada",
+                    "hora_limite": None
+                }
+                tareas.append(tarea)
+
+    print(colorear_texto("Tareas importadas exitosamente.", "magenta"))
+
+# Función para el temporizador
+def temporizador():
+    limpiar_pantalla()
+    while True:
+        try:
+            tiempo = input("Escribe el tiempo en minutos para el temporizador: ").strip()
+            tiempo = int(tiempo)
+            if tiempo <= 0:
+                print(colorear_texto("El tiempo debe ser un número positivo.", "rojo"))
+                continue
+            break
+        except ValueError:
+            print(colorear_texto("Entrada inválida. Debe ser un número entero.", "rojo"))
+
+    print(f"Temporizador iniciado para {tiempo} minutos.")
+    tiempo_segundos = tiempo * 60
+    while tiempo_segundos:
+        mins, secs = divmod(tiempo_segundos, 60)
+        print(f"\r{mins:02}:{secs:02}", end="")
+        time.sleep(1)
+        tiempo_segundos -= 1
+
+    print("\n¡Tiempo terminado!")
+    input("Presiona Enter para regresar al menú principal...")
+
+# Función de ayuda
+def mostrar_ayuda():
+    limpiar_pantalla()
+    print(colorear_texto("Ayuda del Sistema de Gestión de Tareas", "azul"))
+    print("1. Agregar tarea: Permite añadir una nueva tarea con título, fecha límite, prioridad y categoría.")
+    print("2. Eliminar tarea: Permite eliminar una tarea existente.")
+    print("3. Listar tareas: Muestra todas las tareas actuales.")
+    print("4. Marcar tarea como completada: Marca una tarea como completada.")
+    print("5. Editar tarea: Permite editar una tarea existente.")
+    print("6. Filtrar tareas: Filtra las tareas por fecha o categoría.")
+    print("7. Buscar tarea: Busca una tarea por título o parte del título.")
+    print("8. Mostrar calendario: Muestra el calendario del mes actual con tareas marcadas.")
+    print("9. Mostrar historial de tareas completadas: Muestra el historial de tareas completadas.")
+    print("10. Exportar tareas: Exporta las tareas a un archivo de texto.")
+    print("11. Importar tareas: Importa tareas desde un archivo de texto.")
+    print("12. Temporizador: Establece un temporizador para una tarea.")
+    print("13. Salir: Sale del programa.")
+    input("Presiona Enter para regresar al menú principal...")
+
+# Función principal del programa
+def main():
+    while True:
+        limpiar_pantalla()
+        mostrar_menu()
+        opcion = input("Elige una opción: ").strip()
+        if opcion == "1":
+            agregar_tarea()
+        elif opcion == "2":
+            eliminar_tarea()
+        elif opcion == "3":
+            listar_tareas()
+        elif opcion == "4":
+            marcar_completada()
+        elif opcion == "5":
+            editar_tarea()
+        elif opcion == "6":
+            filtrar_tareas()
+        elif opcion == "7":
+            buscar_tarea()
+        elif opcion == "8":
+            navegar_calendario()
+        elif opcion == "9":
+            mostrar_historial()
+        elif opcion == "10":
+            mostrar_ayuda()
+        elif opcion == "11":
+            exportar_tareas()
+        elif opcion == "12":
+            importar_tareas()
+        elif opcion == "13":
+            temporizador()
+        elif opcion == "14":
+            print("Saliendo del programa...")
+            break
+        else:
+            print(colorear_texto("Opción inválida. Intenta de nuevo.", "rojo"))
+
+if __name__ == "__main__":
+    main()
