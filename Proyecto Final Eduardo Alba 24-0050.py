@@ -262,21 +262,22 @@ def filtrar_tareas():
     print("\nFechas disponibles:")
     for fecha in fechas:
         print(f"- {fecha}")
+
     while True:
         filtro = input("\n¿Filtrar por '1' (fecha) o '2' (categoría)? ").strip()
         if filtro in ["1", "2"]:
             break
         else:
             print("Error: Opción de filtro no válida. Por favor, elige '1' (fecha) o '2' (categoría).")
+
     if filtro == "1":
-        filtro = "fecha"
+        filtro_clave = "fecha_limite"
     elif filtro == "2":
-        filtro = "categoría"
+        filtro_clave = "categoria"
 
-    valor = input(f"Escribe el valor para el filtro '{filtro}': ").strip()
+    valor = input(f"Escribe el valor para el filtro '{filtro_clave}': ").strip()
 
-    listar_tareas(filtro=filtro, valor=valor)
-
+    listar_tareas(filtro=filtro_clave, valor=valor)
     
 # buscar tarea
 def buscar_tarea():
